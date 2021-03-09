@@ -3,7 +3,7 @@ CLIENT_TARGET = client
 LOG_TARGET = server_log.txt
 
 CC     = gcc
-CFLAGS = -Wall -Wextra -Wsign-conversion -Wpointer-arith -Wwrite-strings -Wshadow -Wpedantic -Wwrite-strings -std=c99
+CFLAGS = -Wall -Wextra -Wpointer-arith -Wshadow -Wpedantic -std=c11
 
 LFLAGS = -pthread
 

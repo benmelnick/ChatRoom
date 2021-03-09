@@ -22,12 +22,21 @@
 // Insertion order preserved
 // Access to list must be protected by mutex lock
 client_t *clients[MAX_CLIENTS];
-
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+// Clients metadata
 int client_id = 1;
-int client_count = 0;
+_Atomic int client_count = 0;
+
+// Server log file
 FILE *log_file;
+
+// Socket file descriptor for socket that accepts new client connections
+int listening_sock;
+
+// Global flag that all socket threads loop on
+// Cleared upon server shutdown (Ctrl-C)
+_Atomic int server_running = 1;
 
 // Logging methods
 // Prints the string to stdout and writes it to the server's log file
@@ -206,7 +215,30 @@ void *client_comm(void *arg)
   send_menu(client);
 
   // Spin as long as connection is still alive
-  while (recv(client->connection_sock, &client_msg, sizeof(client_msg), 0) > 0) {
+  fd_set rfds;
+  int rc;
+  struct timeval no_timeout;
+  no_timeout.tv_sec = 0;
+  no_timeout.tv_usec = 0;
+  while (server_running) {
+    // Use select() to check if there is data to be read in the socket
+    // Can go right to next iteration of loop if no data to read instead of blocking on recv() all the time
+    FD_ZERO(&rfds);
+    FD_SET(client->connection_sock, &rfds);
+    if ((rc = select(client->connection_sock + 1, &rfds, NULL, NULL, &no_timeout)) < 0) {
+      // Error, close connection
+      server_error((char *)"select() error after connection established\n");
+      break;
+    }
+
+    // Check if the data is available
+    if (!FD_ISSET(client->connection_sock, &rfds))
+      continue;
+
+    // Read the data
+    if (recv(client->connection_sock, &client_msg, sizeof(client_msg), 0) <= 0)
+      break;
+
     // Setup buffers
     memset(out_buff, 0, sizeof(out_buff));
     memset(log_buff, 0, sizeof(log_buff));
@@ -278,29 +310,28 @@ void print_usage()
 //   1. wait for all threads to finish so connections are closed
 //   2. close the log file
 // Other threads will see the change and close their connections
+// Only the main thread runs this code since the handler is set inside main()
 void catch_ctrl_c()
 {
   // Reset back to the default signal
   signal(SIGINT, SIG_DFL);
 
   server_log((char *)"Server shutting down...\n");
-  
-  //pthread_mutex_lock(&clients_mutex);
-  for (int i = 0; i < client_count; i++) {
-    if (clients[i] != 0) {
-      pthread_cancel(clients[i]->tid);  // cancel the continuous send/rcv thread for the client
-      send_closed_signal(clients[i]);    // tell client the server is closing the connection
-      close_connection(clients[i]);     // close the socket
-      clients[i] = 0;                   // delete the client - NOTE: cannot call delete_client() since that shifts elements in the array
-    }
-  }
-  client_count = 0;
-  //pthread_mutex_unlock(&clients_mutex);
 
-  server_log((char *)"Server has terminated all connections.\n");
+  // Set the server_running flag so all threads will begin to shut down
+  server_running = 0;
+  
+  // Wait for all threads to finish
+  while (client_count != 0);
+
+  // Close the listening socket
+  close(listening_sock);
+
+  server_log((char *)"Server has terminated all connections.\n-----\n");
   fclose(log_file);
-  printf("-----\nServer logs are available at server_log.txt");
+  printf("Server logs are available at server_log.txt");
   fflush(stdout); // immediately print what is in the stdout buffer
+
   raise(SIGINT); // raise the signal so the main process gets killed
 }
    
@@ -349,8 +380,8 @@ int main(int argc, char *argv[])
   // Create the log file
   log_file = fopen(LOG_FILE_PATH, "w");
 
-  // Socket file descriptors
-  int listening_sock, connection_sock;
+  // Socket file descriptor for new incoming connections
+  int connection_sock;
 
   // Socket address and port metadata for client and server 
   struct sockaddr_in server_addr, client_addr; 
@@ -406,6 +437,7 @@ int main(int argc, char *argv[])
     // Places source information about client in client_addr struct
     if ((connection_sock = accept(listening_sock, (struct sockaddr *)&client_addr, (socklen_t*)&addrlen)) < 0) { 
       server_error((char *)"accept"); 
+      close(listening_sock);
       return EXIT_FAILURE;
     } 
 
@@ -449,7 +481,8 @@ int main(int argc, char *argv[])
     send(connection_sock, &login_resp, sizeof(login_resp), 0);
   }
 
-  // Unreachable
+  // Unreachable, but close the listening sock just in case
+  close(listening_sock);
 
   return EXIT_SUCCESS;
 }

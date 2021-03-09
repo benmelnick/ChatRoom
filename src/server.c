@@ -170,7 +170,7 @@ void send_closed_signal(client_t *client) {
 // Closes a client connection
 void close_connection(client_t *client)
 {
-  char log_buff[1024];
+  char log_buff[2048];
 
   close(client->connection_sock);  // close the socket
 

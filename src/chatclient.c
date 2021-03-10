@@ -315,13 +315,9 @@ int main(int argc, char *argv[])
   pthread_create(&recv_tid, NULL, &recv_messages, NULL);
   pthread_create(&send_tid, NULL, &send_messages, NULL);
 
-  // Wait until the connection is closed by either client or server
-  // This variable will be changed by either the send thread or receive thread
-  //while (conn_open);
-
-  // Join receive thread to receive any final messages
+  // Wait for threads to finish
   pthread_join(recv_tid, NULL);
-  pthread_join(send_tid, NULL);   // cancel the send thread if it is still running (i.e. client did not enter QUIT)
+  pthread_join(send_tid, NULL); 
 
   close(client_socket);
 

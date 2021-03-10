@@ -1,5 +1,5 @@
-SERVER_TARGET = server 
-CLIENT_TARGET = client
+SERVER_TARGET = chatserver 
+CLIENT_TARGET = chatclient
 LOG_TARGET = server_log.txt
 
 CC     = gcc
@@ -20,5 +20,5 @@ clean:
 
 .PHONY: compile
 compile:
-	@$(CC) $(CFLAGS) $(SRCDIR)/server.c -o $(SERVER_TARGET) $(LFLAGS)
-	@$(CC) $(CFLAGS) $(SRCDIR)/client.c -o $(CLIENT_TARGET) $(LFLAGS)
+	@$(CC) $(CFLAGS) $(SRCDIR)/chatserver.c -o $(SERVER_TARGET) $(LFLAGS)
+	@$(CC) $(CFLAGS) $(SRCDIR)/chatclient.c -o $(CLIENT_TARGET) $(LFLAGS)

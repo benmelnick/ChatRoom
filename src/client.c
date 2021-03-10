@@ -14,7 +14,10 @@
 char display_name[USERNAME_LENGTH];
 int client_socket;
 int client_id;
-volatile _Atomic int conn_open = 1;
+
+// Global flag that send() and recv() threads read and write during execution
+// Clearing this flag will stop both threads execution
+_Atomic int client_running = 1;
 
 // Checks if a provided string contains entirely alphanumeric characters
 int isalnum_str(char *s)
@@ -55,12 +58,31 @@ void *send_messages()
   char data_buff[DATA_LENGTH];
   struct client_message client_msg;
 
-  // spin until the connection is closed by either client or server
-  while (1) {
-    // Prompted by server to respond - send a message
-    // Prompt for input
-    printf("> ");
-    fflush(stdout);    // print the character right away, don't wait for new line to show up in stdout buffer
+  fd_set rfds;
+  int rc;
+  struct timeval no_timeout;
+  no_timeout.tv_sec = 0;
+  no_timeout.tv_usec = 0;
+
+  // Prompt for input
+  printf("> ");
+  fflush(stdout);    // print the character right away, don't wait for new line to show up in stdout buffer
+
+  while (client_running) {
+    // Check if stdin has any input to read with select()
+    // Set a timeout of 0 so we can check for input without blocking
+    FD_ZERO(&rfds);
+    FD_SET(0, &rfds);
+    if ((rc = select(1, &rfds, NULL, NULL, &no_timeout)) < 0) {
+      printf("select() error with stdin\n");
+      continue;
+    }
+
+    // Check if data is available
+    if (!FD_ISSET(0, &rfds))
+      continue;
+
+    // Read the data from stdin
     fgets(data_buff, DATA_LENGTH, stdin);
 
     // Check how much the user entered
@@ -92,20 +114,17 @@ void *send_messages()
     } else if (strcmp(data_buff, ":Exit") == 0) {
       // client closed the connection
       client_msg.command = QUIT_COMMAND;
-      break;
     } else {
       client_msg.command = SENDMSG_COMMAND;
       strcpy(client_msg.data, data_buff);
     }
 
     send(client_socket, &client_msg, sizeof(client_msg), 0);
+
+    // Prompt for input
+    printf("> ");
+    fflush(stdout);
   }
-
-  // Send QUIT message to server
-  send(client_socket, &client_msg, sizeof(client_msg), 0);
-
-  // Clear flag so main() thread will begin to terminate
-  conn_open = 0;
 
   return 0;
 }
@@ -117,9 +136,35 @@ void *recv_messages()
 {
   struct server_message server_msg;
 
-  // Spin until no longer receiving messages
-  // Client will stop receiving messages after it enters QUIT command OR the server closes on its own for some reason
-  while (recv(client_socket, &server_msg, sizeof(server_msg), 0) > 0) {
+  // Spin as long as client is still running and connection is alive
+  fd_set rfds;
+  int rc;
+  struct timeval no_timeout;
+  no_timeout.tv_sec = 0;
+  no_timeout.tv_usec = 0;
+  while (client_running) {
+    // Use select() to check if there is data to be read in the socket
+    FD_ZERO(&rfds);
+    FD_SET(client_socket, &rfds);
+    if ((rc = select(client_socket + 1, &rfds, NULL, NULL, &no_timeout)) < 0) {
+      // Error, close connection
+      printf("select() error after connection established, shutting down...\n");
+      client_running = 0; // shutdown client
+      break;
+    }
+
+    // Check if the data is available
+    if (!FD_ISSET(client_socket, &rfds))
+      continue;
+
+    // Read the data
+    // Break the loop if recv() does not return > 0 (error or connection was closed client side)
+    if (recv(client_socket, &server_msg, sizeof(server_msg), 0) <= 0) {
+      printf("Could not receive data from server, shutting down...\n");
+      client_running = 0;   // shutdown the client if the connection breaks
+      break;
+    }
+
     if (server_msg.uid == 0) {
       // print the message outright if from the server
       printf("\r%s", server_msg.data);
@@ -135,16 +180,15 @@ void *recv_messages()
     // Stop looping if the server sent a signal indicating that it closed the connection
     // Server would send a closed signal either when the server is shut down OR after
     //   the client sends QUIT command/closes the connection
-    if (server_msg.status == CLOSED) 
-      break;
-  
-    // Connection still open, print another '>' to prompt for user input
-    printf("> ");
-    fflush(stdout);
+    // Setting client_running will cause both threads to return
+    if (server_msg.status == CLOSED) {
+      client_running = 0;
+    } else {
+      // Connection still open, print another '>' to prompt for user input
+      printf("> ");
+      fflush(stdout);
+    }
   }
-
-  // Clear flag so main() thread will begin to terminate
-  conn_open = 0;
 
   return 0;
 }
@@ -273,11 +317,11 @@ int main(int argc, char *argv[])
 
   // Wait until the connection is closed by either client or server
   // This variable will be changed by either the send thread or receive thread
-  while (conn_open);
+  //while (conn_open);
 
-  // Join receive thread to receive any final messages, cancel the send thread since no need to send anymore
+  // Join receive thread to receive any final messages
   pthread_join(recv_tid, NULL);
-  pthread_cancel(send_tid);
+  pthread_join(send_tid, NULL);   // cancel the send thread if it is still running (i.e. client did not enter QUIT)
 
   close(client_socket);
 

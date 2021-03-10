@@ -214,11 +214,11 @@ void *client_comm(void *arg)
   // Print the help menu to the new client
   send_menu(client);
 
-  // Spin as long as connection is still alive
+  // Spin as long as server is still running and the connection is still alive
   fd_set rfds;
   int rc;
-  struct timeval no_timeout;
-  no_timeout.tv_sec = 0;
+  struct timeval no_timeout; 
+  no_timeout.tv_sec = 0;  // set timeout to 0 so select() immediately returns
   no_timeout.tv_usec = 0;
   while (server_running) {
     // Use select() to check if there is data to be read in the socket
@@ -236,6 +236,7 @@ void *client_comm(void *arg)
       continue;
 
     // Read the data
+    // Break the loop if recv() does not return > 0 (error or connection was closed client side)
     if (recv(client->connection_sock, &client_msg, sizeof(client_msg), 0) <= 0)
       break;
 

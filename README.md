@@ -8,7 +8,7 @@ This project contains 3 files: `protocol.h`, `chatclient.c`, and `chatserver.c`.
 
 For this project, I developed a custom application-layer protocol that defines how clients of this chat room server must interact with the server. This file contains the definition of the protocol, specifically the message formats that the server sends and receives. The protocol has 4 possible messages that can be transmitted between server and client: 
 
-- `login_reques`t: a payload of username and password that clients send when they want to login to the server
+- `login_request`: a payload of username and password that clients send when they want to login to the server
 
 - `login_response`: the response sent by the server back to the requesting client
   

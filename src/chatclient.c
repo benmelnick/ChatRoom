@@ -194,6 +194,7 @@ void *recv_messages()
   return 0;
 }
 
+// Prints CLI usage
 void print_usage()
 {
   printf("Usage: client -j -h <hostname> -p <portnumber> -u <username> -c <passcode>\n");
@@ -281,14 +282,14 @@ int main(int argc, char *argv[])
   
   // Convert IPv4 and IPv6 addresses from text to binary form 
   if(inet_pton(AF_INET, hostname, &serv_addr.sin_addr) <= 0) { 
-    printf("Invalid address. Address not supported\n"); 
+    printf("Invalid address. Address not supported: IP %s port %d\n", hostname, port); 
     return EXIT_FAILURE;
   } 
   
   // Establish connection with server
   // Connection is identified by the specific client-server pair
   if ((ret = connect(client_socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0) { 
-    printf("\nConnection Failed \n"); 
+    printf("Could not connect to server at IP %s port %d.\n", hostname, port); 
     return EXIT_FAILURE;
   } 
 

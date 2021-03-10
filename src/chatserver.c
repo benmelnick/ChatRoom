@@ -151,6 +151,7 @@ void send_message_to_all_except(char *s, client_t *src, client_t *except)
   pthread_mutex_unlock(&clients_mutex);
 }
 
+// Sends the chat room list of commands to a client
 void send_menu(client_t *client)
 {
   char buff_out[2048];
@@ -164,6 +165,7 @@ void send_menu(client_t *client)
   send_message_to_client(buff_out, client, NULL);
 }
 
+// Sends a signal to a client indicating that it is going to close its connection
 void send_closed_signal(client_t *client) {
   struct server_message msg;
 
@@ -302,6 +304,7 @@ void *client_comm(void *arg)
   return 0;
 }
 
+// Prints CLI usage
 void print_usage()
 {
   printf("Usage: server -s -p <portnumber>\n");

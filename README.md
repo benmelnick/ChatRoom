@@ -58,11 +58,20 @@ Interface and Usage
 
 Both client and server have their own specific command line interfaces. The server has the following command line options:
 
-<table><colgroup><col width="132"><col width="149"><col width="343"></colgroup><tbody><tr><th><span><span>Option Flag</span></span></th><th><span><span>Argument Type</span></span></th><th><span><span>Description</span></span></th></tr><tr><td><span><span>--start (-s)</span></span></td><td><span><span>N/A</span></span></td><td><span><span>Required to start the server</span></span></td></tr><tr><td><span><span>--port (-p)</span></span></td><td><span><span>Integer</span></span></td><td><span><span>The port number on the host to bind the server process to (must be between 1 and 65535)</span></span></td></tr></tbody></table>
+| **Option Flag** | **Argument Type** | **Description**                                                                         |
+| --------------- | ----------------- | --------------------------------------------------------------------------------------- |
+| --start (-s)    | N/A               | Required to start the server                                                            |
+| --port (-p)     | Integer           | The port number on the host to bind the server process to (must be between 1 and 65535) |
 
 The client has the following command line options:
 
-<table><colgroup><col width="132"><col width="149"><col width="343"></colgroup><tbody><tr><th><span><span>Option Flag</span></span></th><th><span><span>Argument Type</span></span></th><th><span><span>Description</span></span></th></tr><tr><td><span><span>--join (-j)</span></span></td><td><span><span>N/A</span></span></td><td><span><span>Required to join the chat room</span></span></td></tr><tr><td><span><span>--host (-h)</span></span></td><td><span><span>String</span></span></td><td><span><span>The host name on which the chat server is running</span></span></td></tr><tr><td><span><span>--port (-p)</span></span></td><td><span><span>Integer</span></span></td><td><span><span>The port number on the specified host to which the server process is bound and running (must be between 1 and 65535)</span></span></td></tr><tr><td><span><span>--username (-u)</span></span></td><td><span><span>String</span></span></td><td><span><span>The display name to show to other users when in the chat room</span></span></td></tr><tr><td><span><span>--passcode (-c)</span></span></td><td><span><span>String</span></span></td><td><span><span>The password of the chat room (the same for all users)</span></span></td></tr></tbody></table>
+| **Option Flag** | **Argument Type** | **Description**                                                            |
+|:--------------- | ----------------- | -------------------------------------------------------------------------- |
+| --join (-j)     | N/A               | Required to join the chat room                                             |
+| --host (-h)     | String            | The host name on which the server is running                               |
+| --port (-p)     | Integer           | The port number on the specified host to which the server process is bound |
+| --username (-u) | String            | The display name to show to other users                                    |
+| --pascode (-c)  | String            | The password of the chat room (the same for all users)                     |
 
 To start up the server and then have a client connect to the server in order to join that chat room, the following commands would be run:
 

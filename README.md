@@ -52,7 +52,7 @@ C11 is used in order to use the `_Atomic` type qualifier for the shared connecti
 
 `gcc -Wall -Wextra -Wpointer-arith -Wshadow -Wpedantic -std=c11 src/server.c -o server -pthread`
 
-To clean the directory (i.e. delete the executables), run make clean. To build the entire package so that it can run, simply run make.
+To clean the directory (i.e. delete the executables), run `make clean`. To build the entire package so that it can run, simply run `make`.
 
 Interface and Usage
 
